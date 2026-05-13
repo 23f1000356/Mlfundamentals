@@ -117,6 +117,7 @@ tr:hover td{background:var(--bg2)}
 .nav-toggle{display:none}
 .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:16px 0}
 .tbl-scroll table{min-width:520px}
+.tbl-scroll.tbl-wide table{min-width:780px}
 .sum-foot-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
 @media (max-width:900px){
   .nav-toggle{display:flex;align-items:center;justify-content:center;position:fixed;top:10px;left:10px;z-index:230;width:44px;height:44px;padding:0;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.1)}
@@ -168,10 +169,12 @@ tr:hover td{background:var(--bg2)}
     <a class="nav-sub" href="#r-linear">Linear regression</a>
     <a class="nav-sub" href="#r-gd">Gradient descent</a>
     <a class="nav-sub" href="#r-eval">Evaluation</a>
-    <a class="nav-sub" href="#r-types">Types</a></div>
+    <a class="nav-sub" href="#r-types">Types</a>
+    <a class="nav-sub" href="#r-algos">Regression algorithms</a></div>
     <div><a class="nav-topic" href="#classification" style="--ac:var(--teal)"><span class="nav-num" style="background:var(--teal)">3</span>Classification</a>
     <a class="nav-sub" href="#c-bound">Decision boundary</a>
     <a class="nav-sub" href="#c-algo">Algorithms</a>
+    <a class="nav-sub" href="#c-deep">Algorithms in depth</a>
     <a class="nav-sub" href="#c-met">Metrics</a></div>
     <div><a class="nav-topic" href="#perceptron" style="--ac:var(--coral)"><span class="nav-num" style="background:var(--coral)">4</span>Perceptron</a>
     <a class="nav-sub" href="#p-neuron">Single neuron</a>
@@ -494,6 +497,72 @@ RMSE = √((1/n) Σ (yᵢ−ŷᵢ)²)</div>
       <tr><td><strong>Lasso (L1)</strong></td><td><code>MSE + λΣ|wᵢ|</code></td><td>Feature selection — sets some weights to zero</td></tr>
     </tbody>
   </table></div>
+
+  <h2 id="r-algos">Regression algorithms in detail</h2>
+  <p>Every regression method chooses a <strong>function family</strong> for f(x), a <strong>loss</strong> L(y, ŷ), and usually a <strong>regulariser</strong> to control complexity. The right choice depends on linearity, outliers, dimensionality, and whether you need calibrated probabilities or interpretable splits.</p>
+
+  <h3 id="r-reglin">Regularised linear &amp; generalised linear regression</h3>
+  <p><strong>Ridge (L2)</strong> shrinks all coefficients smoothly toward zero but rarely sets them exactly to zero — good when many weakly relevant features exist. <strong>Lasso (L1)</strong> encourages sparsity and performs implicit feature selection. <strong>Elastic Net</strong> blends both so correlated groups of features (e.g. many Laplacian variants) can survive together while still shrinking noise.</p>
+  <div class="formula" style="border-color:var(--purple)">Elastic Net loss (single response):
+
+J(w) = (1/n) Σ (yᵢ − xᵢᵀw)² + λ₁‖w‖₁ + λ₂‖w‖₂²
+
+<span class="cm">// λ₁ dominates → Lasso-like sparsity</span>
+<span class="cm">// λ₂ dominates → Ridge-like stability on correlated columns</span>
+
+<span class="cm">// Logistic “regression” is GLM: linear score + link → probability</span>
+g(E[y|x]) = wᵀx + b   with   g = logit for binary counts</div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="ct">When to prefer which penalty</div>
+      <div class="cb"><strong>Ridge:</strong> p ≫ n (many features, few samples), multicollinearity, all features potentially useful.<br><br><strong>Lasso:</strong> you believe only a subset of features matter; need a sparse model for deployment speed.<br><br><strong>Elastic Net:</strong> default compromise in many tabular pipelines when features are correlated (common in engineered scores).</div>
+    </div>
+    <div class="card">
+      <div class="ct">Robust &amp; quantile variants</div>
+      <div class="cb"><strong>Huber loss</strong> reduces the influence of outliers compared to pure squared error — useful when sharpness labels are noisy.<br><br><strong>Quantile regression</strong> predicts a chosen percentile of y (e.g. 10th and 90th percentile blur score) instead of the mean — helpful for risk-aware thresholds.</div>
+    </div>
+  </div>
+
+  <h3 id="r-svr">Support vector regression (SVR)</h3>
+  <p>SVR finds a function that stays within an <strong>ε-tube</strong> around as many training points as possible while keeping the slope “flat” in feature space (small ‖w‖). Points outside the tube become support vectors and pay a linear hinge penalty.</p>
+  <div class="formula" style="border-color:var(--purple);font-size:.76rem">Primal idea: minimise ½‖w‖² + C Σ ξᵢ + C Σ ξᵢ*
+subject to |yᵢ − (wᵀφ(xᵢ)+b)| ≤ ε + ξᵢ
+
+<span class="cm">// ε = tube half-width — larger ε → fewer support vectors, smoother fit</span>
+<span class="cm">// C = trade-off between flatness and tolerance of errors outside tube</span>
+<span class="cm">// φ(x) = implicit feature map; kernel K(x,x′)=φ(x)ᵀφ(x′) for non-linear SVR</span></div>
+  <div class="callout" style="background:var(--purple-l);border-color:var(--purple-m)">
+    <strong style="color:var(--purple)">Practical note:</strong> SVR shines on <strong>medium-sized</strong> tabular problems with non-linear structure. On very large datasets, kernel methods become expensive (training is super-linear in n); tree ensembles or neural nets are often easier to scale.
+  </div>
+
+  <h3 id="r-trees">Regression trees, random forests &amp; gradient boosting</h3>
+  <p><strong>CART regression trees</strong> split each node to minimise weighted MSE in the children. Leaves predict the <strong>mean</strong> of training y in that region — piecewise-constant surfaces with axis-aligned boundaries.</p>
+  <div class="formula" style="border-color:var(--purple);font-size:.76rem">Split impurity (MSE) for candidate split S into L and R:
+
+Δ = Σᵢ∈L (yᵢ − μL)² + Σᵢ∈R (yᵢ − μR)²   <span class="cm">// choose split minimising total child MSE</span>
+
+Random Forest regressor:  ŷ(x) = (1/B) Σᵦ fᵦ(x)
+<span class="cm">// each fᵦ is a deep tree on a bootstrap sample + random feature subset</span>
+
+Gradient boosting (regression):  Fₘ(x) = Fₘ₋₁(x) + η · hₘ(x)
+<span class="cm">// hₘ fits pseudo-residuals rᵢ = −∂L/∂ŷ at ŷ = Fₘ₋₁(xᵢ); typical L = squared error</span></div>
+  <div class="g3">
+    <div class="tc tc-purple"><div class="tct">Single tree</div><div class="tcb">Very interpretable; high variance. Control depth, min samples per leaf, or pruning to avoid memorising noise.</div></div>
+    <div class="tc tc-purple"><div class="tct">Random Forest</div><div class="tcb">Bagging + decorrelated trees. Lower variance; strong default for heterogeneous tabular features (Laplacian, FFT, metadata).</div></div>
+    <div class="tc tc-purple"><div class="tct">Boosting (GBDT)</div><div class="tcb">Sequential bias reduction. Often best accuracy on structured data; tune learning rate, depth, and early stopping to avoid overfit.</div></div>
+  </div>
+
+  <div class="tbl-scroll"><table>
+    <thead><tr><th>Algorithm</th><th>Typical loss</th><th>Strengths</th><th>Watch-outs</th></tr></thead>
+    <tbody>
+      <tr><td><strong>OLS / Ridge / Lasso / Elastic Net</strong></td><td>Squared (+ penalty)</td><td>Fast, convex, interpretable coefficients</td><td>Misses strong non-linearity unless you engineer features</td></tr>
+      <tr><td><strong>Polynomial / spline regression</strong></td><td>Squared (+ penalty)</td><td>Flexible low-dimensional curves</td><td>High degree → unstable; needs regularisation or GAM framework</td></tr>
+      <tr><td><strong>SVR (kernel)</strong></td><td>ε-insensitive + margin</td><td>Strong smooth non-linear fits on moderate n</td><td>Training cost; careful tuning of C, ε, kernel hyperparameters</td></tr>
+      <tr><td><strong>Regression tree / RF / GBDT</strong></td><td>MSE / Huber (variants)</td><td>Handles interactions &amp; missingness; weak monotonic priors via constraints in some libs</td><td>Extrapolation beyond training range; calibration for probabilities needs add-ons (e.g. isotonic)</td></tr>
+      <tr><td><strong>Neural regression</strong></td><td>MSE, Huber, …</td><td>Scales to images, sequences, multi-task heads</td><td>Data hunger; careful validation &amp; regularisation (dropout, weight decay)</td></tr>
+    </tbody>
+  </table></div>
 </section>
 
 <!-- ══ 3. CLASSIFICATION ══════════════════════════════════ -->
@@ -519,7 +588,8 @@ RMSE = √((1/n) Σ (yᵢ−ŷᵢ)²)</div>
     <div class="tc tc-teal"><div class="tct">Multi-label</div><div class="tcb">Multiple tags simultaneously. Blurry AND dark AND damaged. Several winners possible.</div></div>
   </div>
 
-  <h2 id="c-algo">Key Algorithms</h2>
+  <h2 id="c-algo">Key classification algorithms</h2>
+  <p>These four are the <strong>classical baselines</strong>: cheap to train, easy to explain, and strong sanity checks before you invest in deep models or heavy ensembles.</p>
   <div class="g2">
     <div class="card">
       <div class="ct">Logistic Regression</div>
@@ -527,7 +597,7 @@ RMSE = √((1/n) Σ (yᵢ−ŷᵢ)²)</div>
 
 p ≥ 0.5 → class 1 (sharp)
 p &lt;  0.5 → class 0 (blurry)</div>
-      <div class="cb">Linear boundary. Fast, interpretable, outputs probabilities. Always use as a baseline before complex models.</div>
+      <div class="cb">Linear boundary in feature space. Optimises <strong>log-loss</strong> (cross-entropy), which is well-calibrated if the model is not misspecified. Fast, interpretable coefficients (each feature’s log-odds contribution). Always compare your CNN’s AUC to a regularised logistic on the same tabular scores.</div>
     </div>
     <div class="card">
       <div class="ct">Decision Tree</div>
@@ -537,20 +607,79 @@ elif FFT_score &lt; 30:
   → blurry
 else:
   → sharp</div>
-      <div class="cb">Highly interpretable. Asks yes/no questions about features. Prone to overfitting without pruning or depth limits.</div>
+      <div class="cb">Greedy axis-aligned splits maximise <strong>information gain</strong> (entropy/Gini reduction). Highly interpretable; prone to <strong>high variance</strong> — tiny data changes can flip splits. Use <code>max_depth</code>, <code>min_samples_leaf</code>, cost-complexity pruning, or go straight to ensembles.</div>
     </div>
     <div class="card">
       <div class="ct">K-Nearest Neighbours (KNN)</div>
       <div class="formula" style="border-color:var(--teal);font-size:.75rem">class = majority_vote(K nearest)
 distance = √(Σ(xᵢ−zᵢ)²)</div>
-      <div class="cb">No training phase. Finds K nearest training examples by Euclidean distance and votes. Simple but slow at scale — O(n) per prediction.</div>
+      <div class="cb">Instance-based: decision boundary adapts locally. <strong>No training</strong> but prediction cost grows with n. Scale features first (KNN is distance-sensitive). Choose odd K for binary voting ties; weight votes by inverse distance for smoother boundaries.</div>
     </div>
     <div class="card">
       <div class="ct">Naive Bayes</div>
       <div class="formula" style="border-color:var(--teal);font-size:.75rem">P(class|x) ∝ P(class)·ΠP(xᵢ|class)</div>
-      <div class="cb">Applies Bayes' theorem assuming all features are independent (the "naive" part). Very fast, works well for text. Surprisingly effective despite the assumption being rarely true.</div>
+      <div class="cb">Generative shortcut: assumes features are <strong>conditionally independent</strong> given the class. Gaussian NB for continuous scores, Multinomial/Bernoulli for counts. Extremely fast on high-dimensional sparse data (e.g. text). Calibration can be poor — pair with Platt scaling or isotonic regression if you need trustworthy probabilities.</div>
     </div>
   </div>
+
+  <h2 id="c-deep">Classification algorithms in depth</h2>
+  <p>Beyond baselines, most production classifiers are <strong>margin-based</strong> (SVM), <strong>tree ensembles</strong> (random forest, boosting), or <strong>neural networks</strong>. They differ in how they carve up feature space, what loss they optimise, and how they behave under class imbalance.</p>
+
+  <h3 id="c-svmcls">Support vector machines (linear &amp; kernel)</h3>
+  <p>A <strong>hard-margin</strong> linear SVM finds the hyperplane that separates classes with the largest gap (margin) between the closest points (support vectors). <strong>Soft-margin</strong> SVM allows slack ξᵢ for overlap; <strong>C</strong> trades margin width vs violations. Non-linear boundaries use the <strong>kernel trick</strong> — same optimisation in a richer feature space without explicitly computing φ(x).</p>
+  <div class="formula" style="border-color:var(--teal);font-size:.75rem">Primal (soft-margin):  minimise ½‖w‖² + C Σ ξᵢ
+subject to  yᵢ(wᵀxᵢ + b) ≥ 1 − ξᵢ ,   ξᵢ ≥ 0
+
+<span class="cm">// yᵢ ∈ {−1,+1}  (encode blurry/sharp as −1/+1)</span>
+<span class="cm">// Large C → fit training points tightly (lower bias, higher variance)</span>
+<span class="cm">// Small C → wider margin, more tolerance of misclassification on train</span>
+
+Dual (kernelised):  maximise Σ αᵢ − ½ Σᵢⱼ αᵢ αⱼ yᵢ yⱼ K(xᵢ,xⱼ)
+<span class="cm">// Common K: linear, RBF exp(−γ‖x−x′‖²), polynomial (xᵀx′+c)^d</span></div>
+  <div class="callout" style="background:var(--teal-l);border-color:var(--teal-m)">
+    <strong style="color:var(--teal)">When SVM still wins:</strong> Small-to-medium tabular datasets, especially when classes are separable with a smooth boundary in a lifted space. For images, raw-pixel SVMs are obsolete — but <strong>SVM on engineered features</strong> (Laplacian, FFT, colour stats) can still be a strong cheap baseline next to logistic regression.
+  </div>
+
+  <h3 id="c-ens">Tree ensembles — random forest &amp; gradient boosting</h3>
+  <p><strong>Random Forest</strong> trains many deep trees on bootstrap samples with random feature subsets at each split; the final vote or average probability reduces variance and resists overfitting better than a single tree. <strong>Gradient boosting</strong> (XGBoost, LightGBM, CatBoost) fits trees <strong>sequentially</strong>: each new tree predicts the negative gradient of the loss w.r.t. the current model output (pseudo-residuals). Boosting aggressively reduces bias but needs careful tuning (learning rate η, max depth, subsample, early stopping).</p>
+  <div class="formula" style="border-color:var(--teal);font-size:.75rem">Random Forest vote:  ŷ = argmax_c Σᵦ 𝟙[fᵦ(x) = c]   <span class="cm">// classification majority over B trees</span>
+
+Gradient boosting step (multiclass uses K vectors Fᵏ):
+Fₘ(x) = Fₘ₋₁(x) + η · hₘ(x)   with   hₘ fitted to −∂L/∂Fₘ₋₁
+<span class="cm">// Binary log-loss → pseudo-residuals ≈ (yᵢ − pᵢ)</span></div>
+  <div class="g2">
+    <div class="card">
+      <div class="ct">Random Forest — strengths</div>
+      <div class="cb">Robust default; handles non-linearity and interactions; out-of-bag error estimate; little preprocessing. Feature importance (impurity decrease or permutation) helps debug which scores drive blur vs sharp.</div>
+    </div>
+    <div class="card">
+      <div class="ct">Boosting — strengths</div>
+      <div class="cb">Often highest accuracy on structured/tabular data; built-in handling of missing values in some libraries; monotone constraints available for business rules. Watch for overfitting without early stopping and strong regularisation.</div>
+    </div>
+  </div>
+
+  <h3 id="c-dlcls">Neural classifiers &amp; softmax</h3>
+  <p>Deep networks stack learned feature extractors with a <strong>linear classifier head</strong>. Binary problems use a single <strong>sigmoid</strong> output; multi-class uses <strong>softmax</strong> over K logits so probabilities sum to 1. Training minimises cross-entropy, which is the natural companion to softmax (maximum likelihood under a multinomial model).</p>
+  <div class="formula" style="border-color:var(--teal);font-size:.75rem">Softmax:  P(y=k|x) = e^(zₖ) / Σⱼ e^(zⱼ)     where   z = W h(x) + b
+
+Cross-entropy:  L = − Σₖ yₖ log ŷₖ   <span class="cm">// one-hot y for multi-class</span>
+
+<span class="cm">// Binary blur: single logit + sigmoid = 2-class softmax with shared parametrisation</span></div>
+  <p>CNNs (e.g. EfficientNetB0) learn h(x) from pixels; transfer learning freezes early layers and fine-tunes the head when data is limited. <strong>Label smoothing</strong> and <strong>focal loss</strong> are common tweaks under imbalance — focal loss down-weights easy negatives so the model focuses on hard examples.</p>
+
+  <div class="tbl-scroll tbl-wide"><table>
+    <thead><tr><th>Family</th><th>Typical loss</th><th>Boundary shape</th><th>Data scale</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Logistic / linear SVM</strong></td><td>Log-loss / hinge</td><td>Hyperplane</td><td>Small–huge</td><td>Require meaningful features; very fast at inference</td></tr>
+      <tr><td><strong>k-NN</strong></td><td>Implicit 0–1 / local smoothing</td><td>Piecewise, data-defined</td><td>Small–medium</td><td>Curse of dimensionality — weak in very high-D without metric learning</td></tr>
+      <tr><td><strong>Naive Bayes</strong></td><td>Joint generative model</td><td>Quadratic (Gaussian NB) or linear (some variants)</td><td>Small–huge (sparse)</td><td>Strong independence assumption; calibrate probs if needed</td></tr>
+      <tr><td><strong>Decision tree</strong></td><td>Gini / entropy</td><td>Axis-aligned rectangles</td><td>Small–large</td><td>Interpretable; unstable alone</td></tr>
+      <tr><td><strong>Random forest</strong></td><td>Out-of-bag / Gini</td><td>Smooth vote of rectangles</td><td>Medium–very large</td><td>Great tabular default; tune mtry / max_features</td></tr>
+      <tr><td><strong>Boosted trees (GBDT)</strong></td><td>Log-loss / exponential</td><td>Additive trees</td><td>Medium–very large</td><td>Often SOTA on tables; tune η, depth, #trees</td></tr>
+      <tr><td><strong>Kernel SVM</strong></td><td>Hinge + margin</td><td>Smooth in RKHS</td><td>Small–medium</td><td>Kernel &amp; C critical; expensive on huge n</td></tr>
+      <tr><td><strong>CNN / Transformer</strong></td><td>Cross-entropy (+ aux)</td><td>Highly non-linear in pixel space</td><td>Large (images/text)</td><td>Data-hungry; augmentation &amp; pre-training matter</td></tr>
+    </tbody>
+  </table></div>
 
   <h2 id="c-met">Evaluation — The Confusion Matrix</h2>
   <p>A confusion matrix breaks every prediction into four outcomes. All evaluation metrics flow from these four cells.</p>
