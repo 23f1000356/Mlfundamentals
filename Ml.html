@@ -118,6 +118,7 @@ tr:hover td{background:var(--bg2)}
 .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:16px 0}
 .tbl-scroll table{min-width:520px}
 .tbl-scroll.tbl-wide table{min-width:780px}
+.tbl-scroll.tbl-xwide table{min-width:920px}
 .sum-foot-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
 @media (max-width:900px){
   .nav-toggle{display:flex;align-items:center;justify-content:center;position:fixed;top:10px;left:10px;z-index:230;width:44px;height:44px;padding:0;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.1)}
@@ -173,6 +174,7 @@ tr:hover td{background:var(--bg2)}
     <a class="nav-sub" href="#r-algos">Regression algorithms</a></div>
     <div><a class="nav-topic" href="#classification" style="--ac:var(--teal)"><span class="nav-num" style="background:var(--teal)">3</span>Classification</a>
     <a class="nav-sub" href="#c-bound">Decision boundary</a>
+    <a class="nav-sub" href="#c-types">Types &amp; examples</a>
     <a class="nav-sub" href="#c-algo">Algorithms</a>
     <a class="nav-sub" href="#c-deep">Algorithms in depth</a>
     <a class="nav-sub" href="#c-met">Metrics</a></div>
@@ -391,7 +393,7 @@ Power = 1 − β = P(detect real effect)</div>
   </div>
 
   <h2 id="r-linear">Linear Regression</h2>
-  <p>Fits a straight line through data points to predict y from x. The model learns the slope m and intercept b from data.</p>
+  <p>Fits a straight line through data points to predict y from x. The model learns the slope m and intercept b from data. <strong>Example:</strong> predict polish loss (mg) from tumbling time (minutes) in a linear range — each extra minute removes roughly a constant amount until saturation (then you would extend with polynomial or a different model).</p>
 
   <div class="formula" style="border-color:var(--purple)">Simple:   y = mx + b
 
@@ -474,7 +476,7 @@ Repeat until weights converge</div>
 
 R² = 1.0 → perfect fit
 R² = 0.0 → no better than predicting mean
-R² < 0.0 → worse than predicting mean</div>
+R² &lt; 0.0 → worse than predicting mean</div>
       <div class="cb">R²=0.85 means "85% of the variance in sharpness is explained by the Laplacian score."</div>
     </div>
     <div class="card">
@@ -485,18 +487,26 @@ RMSE = √((1/n) Σ (yᵢ−ŷᵢ)²)</div>
     </div>
   </div>
 
-  <h2 id="r-types">Types of Regression & Regularisation</h2>
-  <div class="tbl-scroll"><table>
-    <thead><tr><th>Type</th><th>Formula</th><th>Use when</th></tr></thead>
+  <h2 id="r-types">Types of regression — algorithms &amp; examples</h2>
+  <p>Regression problems differ by <strong>target type</strong> (continuous, count, bounded), <strong>shape of f(x)</strong> (linear vs highly nonlinear), and <strong>data quality</strong> (outliers, missingness). The table below maps common <strong>types</strong> to representative <strong>algorithms</strong> and a concrete <strong>example</strong> you might recognise from product or analytics work.</p>
+  <div class="tbl-scroll tbl-xwide"><table>
+    <thead><tr><th>Type / setting</th><th>Representative algorithms</th><th>Use when</th><th>Worked example</th></tr></thead>
     <tbody>
-      <tr><td><strong>Linear</strong></td><td><code>y = wx + b</code></td><td>Relationship is roughly straight</td></tr>
-      <tr><td><strong>Multiple linear</strong></td><td><code>y = w₁x₁ + w₂x₂ + b</code></td><td>Multiple features, linear relationships</td></tr>
-      <tr><td><strong>Polynomial</strong></td><td><code>y = w₁x + w₂x² + b</code></td><td>Curved relationship</td></tr>
-      <tr><td><strong>Logistic</strong></td><td><code>p = σ(wx + b)</code></td><td>Binary classification — outputs probability</td></tr>
-      <tr><td><strong>Ridge (L2)</strong></td><td><code>MSE + λΣwᵢ²</code></td><td>Prevent overfitting, keep all features</td></tr>
-      <tr><td><strong>Lasso (L1)</strong></td><td><code>MSE + λΣ|wᵢ|</code></td><td>Feature selection — sets some weights to zero</td></tr>
+      <tr><td><strong>Simple linear</strong></td><td>OLS, Huber on one x</td><td>One dominant numeric driver, roughly straight trend</td><td>Predict monthly rent (₹) from floor area (m²): ŷ = 850·area + 12000.</td></tr>
+      <tr><td><strong>Multiple linear</strong></td><td>OLS, Ridge</td><td>Several numeric/categorical features, still “globally linear” after encoding</td><td>Diamond listing price from carat, table %, depth %, colour code (one-hot): linear model is a jewellery pricing baseline.</td></tr>
+      <tr><td><strong>Polynomial / basis</strong></td><td>Polynomial + Ridge, splines, GAM</td><td>Curvature in low dimensions; interpret smooth effects</td><td>Phone battery drain % vs screen-on hours shows diminishing slope — add x² term or spline bend.</td></tr>
+      <tr><td><strong>Regularised linear</strong></td><td>Ridge, Lasso, Elastic Net</td><td>Many correlated columns (p large or p≈n), need stability or sparsity</td><td>180 handcrafted features from one ring crop → predict photographer “pop” score 1–10; <strong>Lasso</strong> zeros redundant FFT bins.</td></tr>
+      <tr><td><strong>GLM — counts</strong></td><td>Poisson / negative binomial regression</td><td>Non-negative integer targets (rates, counts)</td><td>Daily SKU orders from [day-of-week, promo flag, inventory]: log link ensures positive mean counts.</td></tr>
+      <tr><td><strong>Robust / outlier-aware</strong></td><td>Huber loss, RANSAC, Theil–Sen</td><td>Heavy tails or label errors in y (or leverage points in x)</td><td>House resale value with one mis-typed ₹9 crore outlier; Huber reduces squared pull of that point vs pure MSE.</td></tr>
+      <tr><td><strong>Quantile</strong></td><td>Linear quantile reg, GBDT quantile</td><td>Need intervals / risk (median, P10, P90), not only mean</td><td>Image QC pipeline: predict <strong>P90</strong> processing latency (ms) from queue length and worker count for SLA dashboards.</td></tr>
+      <tr><td><strong>Kernel / SVR</strong></td><td>SVR (linear, RBF, poly kernel)</td><td>Moderate n, smooth nonlinear f in moderate-D feature space</td><td>Exhibition lighting colour cast index vs expert “warmth” score 1–10 — RBF SVR on 600 labelled tiles.</td></tr>
+      <tr><td><strong>Piecewise (trees)</strong></td><td>CART, Random Forest regressor, XGBoost/LightGBM reg</td><td>Interactions, mixed types, monotone constraints (some libs)</td><td>Continuous blur score 0–100 from [Laplacian variance, FFT high-freq energy, JPEG Q, megapixels]; leaf = mean score in region.</td></tr>
+      <tr><td><strong>Neural regression</strong></td><td>MLP, CNN / ViT head, sequence models</td><td>Raw pixels, waveforms, text; high nonlinearity</td><td>CNN predicts per-pixel specular intensity correction map; or single scalar “tack sharpness” head on macro stack.</td></tr>
     </tbody>
   </table></div>
+  <div class="callout" style="background:var(--purple-l);border-color:var(--purple-m)">
+    <strong style="color:var(--purple)">Remember:</strong> <strong>Logistic regression</strong> is classification (Bernoulli / categorical likelihood), not least-squares regression — it shares the word because the linear score enters through a link function, exactly like other GLMs.
+  </div>
 
   <h2 id="r-algos">Regression algorithms in detail</h2>
   <p>Every regression method chooses a <strong>function family</strong> for f(x), a <strong>loss</strong> L(y, ŷ), and usually a <strong>regulariser</strong> to control complexity. The right choice depends on linearity, outliers, dimensionality, and whether you need calibrated probabilities or interpretable splits. <strong>Neural regression</strong> uses the same MSE or Huber head as classical models, but h(x) is a deep network — so non-linearity is learned from raw inputs (pixels, waveforms) rather than hand-built features.</p>
@@ -738,6 +748,31 @@ Gradient boosting (regression):  Fₘ(x) = Fₘ₋₁(x) + η · hₘ(x)
   </div>
   <p><strong>Threshold choice:</strong> Moving the decision threshold (e.g. from 0.5 on p(sharp)) trades precision for recall — essential when false negatives cost more than false positives.</p>
 
+  <h2 id="c-types">Classification — types, algorithms &amp; examples</h2>
+  <p>Pick the <strong>problem type</strong> first (how many labels? mutually exclusive?). Then choose an <strong>algorithm family</strong> that matches data size, interpretability needs, and whether you need calibrated probabilities.</p>
+  <div class="tbl-scroll tbl-xwide"><table>
+    <thead><tr><th>Problem type</th><th>What the model outputs</th><th>Common algorithms</th><th>Worked example</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Binary</strong> (two classes)</td><td>One probability (or score + threshold)</td><td>Logistic regression, linear / RBF SVM, decision tree, Random Forest, XGBoost, CNN + sigmoid</td><td><strong>Blur vs sharp</strong> on product photos: label y∈{0,1}, threshold p(sharp) ≥ 0.45 for high recall.</td></tr>
+      <tr><td><strong>Multiclass</strong> (one of K)</td><td>Probability vector summing to 1 (or winner-take-all vote)</td><td>Softmax MLP, multinomial logistic, RF / boosting with Gini, CNN + softmax</td><td><strong>SKU type</strong> from crop: exactly one of {ring, earring, chain, pendant}; softmax ensures ∑pₖ=1.</td></tr>
+      <tr><td><strong>Multilabel</strong> (any subset)</td><td>Independent (or structured) probabilities per tag</td><td>K binary logistic heads, binary relevance, classifier chains, some Transformer multi-head setups</td><td>Same macro shot: tags <em>motion_blur</em>, <em>glare</em>, <em>dust</em> each yes/no — three sigmoids, not one softmax.</td></tr>
+      <tr><td><strong>Imbalanced binary / rare positives</strong></td><td>Same as binary but training signal skewed</td><td>Class weights in loss, undersample majority, focal loss, anomaly detection baselines, stratified CV</td><td><strong>Defect 0.1%</strong> on line scan: balance batches or use focal loss so easy OK images do not drown gradients.</td></tr>
+      <tr><td><strong>Ordinal</strong> (ordered classes)</td><td>Rank-consistent probabilities or scores</td><td>Ordinal logistic (proportional odds), cumulative link models, some neural ranking heads</td><td>Customer <strong>1–5 star</strong> satisfaction: treating stars as nominal throws away order; ordinal models respect “4 &gt; 3”.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="tbl-scroll tbl-xwide"><table>
+    <thead><tr><th>Algorithm family</th><th>Typical members</th><th>Strengths</th><th>Worked example</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Linear / margin linear</strong></td><td>Logistic regression, linear SVM</td><td>Fast inference, coefficients explain log-odds direction</td><td>Blur from [Laplacian, Sobel energy, file size KB]: 3-feature logistic beats guessing; compare AUC to deep model.</td></tr>
+      <tr><td><strong>Instance-based</strong></td><td>kNN, distance-weighted voting</td><td>No training loop; flexible local boundary</td><td>50 stored embeddings per jewellery class; classify new crop by majority of 9 nearest neighbours in cosine distance.</td></tr>
+      <tr><td><strong>Generative / naive</strong></td><td>Gaussian NB, multinomial NB</td><td>Extremely fast; strong with sparse counts</td><td>Route support tickets to teams using bag-of-words counts + NB; each team is a class.</td></tr>
+      <tr><td><strong>Decision trees &amp; ensembles</strong></td><td>CART, Random Forest, XGBoost, LightGBM, CatBoost</td><td>Handles nonlinearities + interactions; strong tabular default</td><td>50k rows of tabular features for <strong>churn</strong> (stay/leave): XGBoost often wins without feature engineering.</td></tr>
+      <tr><td><strong>Kernel SVM</strong></td><td>RBF / polynomial kernel SVM</td><td>Strong when n is modest and boundary is smooth in lifted space</td><td>800 images summarised by 12 histogram features; RBF SVM separates two artisan styles with wide margin.</td></tr>
+      <tr><td><strong>Deep neural</strong></td><td>CNN, ViT, Transformer encoders</td><td>Representation learning from raw pixels / text / audio</td><td><strong>EfficientNetB0</strong> fine-tuned on 20k labelled jewellery images for 120-way vendor fraud vs normal listing.</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Quick recipe:</strong> start with a <strong>linear baseline</strong> on the same features you will give to a complex model, add a <strong>tree ensemble</strong> if tabular and nonlinear, and reserve <strong>deep nets</strong> for when raw inputs (pixels, waveform) carry the signal.</p>
+
   <h2 id="c-algo">Key classification algorithms</h2>
   <p>These four are the <strong>classical baselines</strong>: cheap to train, easy to explain, and strong sanity checks before you invest in deep models or heavy ensembles.</p>
   <div class="g2">
@@ -747,7 +782,7 @@ Gradient boosting (regression):  Fₘ(x) = Fₘ₋₁(x) + η · hₘ(x)
 
 p ≥ 0.5 → class 1 (sharp)
 p &lt;  0.5 → class 0 (blurry)</div>
-      <div class="cb">Linear boundary in feature space. Optimises <strong>log-loss</strong> (cross-entropy), which is well-calibrated if the model is not misspecified. Fast, interpretable coefficients (each feature’s log-odds contribution). Always compare your CNN’s AUC to a regularised logistic on the same tabular scores.</div>
+      <div class="cb">Linear boundary in feature space. Optimises <strong>log-loss</strong> (cross-entropy), which is well-calibrated if the model is not misspecified. Fast, interpretable coefficients (each feature’s log-odds contribution). Always compare your CNN’s AUC to a regularised logistic on the same tabular scores.<br><br><strong>Example:</strong> Train on rows [Laplacian=42, FFT=0.31, size_kb=890] → label sharp; after fitting, a new image with [55, 0.28, 920] might get p(sharp)=0.82.</div>
     </div>
     <div class="card">
       <div class="ct">Decision Tree</div>
@@ -757,18 +792,18 @@ elif FFT_score &lt; 30:
   → blurry
 else:
   → sharp</div>
-      <div class="cb">Greedy axis-aligned splits maximise <strong>information gain</strong> (entropy/Gini reduction). Highly interpretable; prone to <strong>high variance</strong> — tiny data changes can flip splits. Use <code>max_depth</code>, <code>min_samples_leaf</code>, cost-complexity pruning, or go straight to ensembles.</div>
+      <div class="cb">Greedy axis-aligned splits maximise <strong>information gain</strong> (entropy/Gini reduction). Highly interpretable; prone to <strong>high variance</strong> — tiny data changes can flip splits. Use <code>max_depth</code>, <code>min_samples_leaf</code>, cost-complexity pruning, or go straight to ensembles.<br><br><strong>Example:</strong> Root split “Laplacian &lt; 48?” sends dark soft images left; left child “JPEG Q &lt; 70?” further splits compression artefacts from true motion blur.</div>
     </div>
     <div class="card">
       <div class="ct">K-Nearest Neighbours (KNN)</div>
       <div class="formula" style="border-color:var(--teal);font-size:.75rem">class = majority_vote(K nearest)
 distance = √(Σ(xᵢ−zᵢ)²)</div>
-      <div class="cb">Instance-based: decision boundary adapts locally. <strong>No training</strong> but prediction cost grows with n. Scale features first (KNN is distance-sensitive). Choose odd K for binary voting ties; weight votes by inverse distance for smoother boundaries.</div>
+      <div class="cb">Instance-based: decision boundary adapts locally. <strong>No training</strong> but prediction cost grows with n. Scale features first (KNN is distance-sensitive). Choose odd K for binary voting ties; weight votes by inverse distance for smoother boundaries.<br><br><strong>Example:</strong> With K=5 in 2D [Laplacian, FFT] space, a query image inherits the majority label among its 5 nearest training neighbours — useful for a quick sanity check on a few hundred labelled tiles.</div>
     </div>
     <div class="card">
       <div class="ct">Naive Bayes</div>
       <div class="formula" style="border-color:var(--teal);font-size:.75rem">P(class|x) ∝ P(class)·ΠP(xᵢ|class)</div>
-      <div class="cb">Generative shortcut: assumes features are <strong>conditionally independent</strong> given the class. Gaussian NB for continuous scores, Multinomial/Bernoulli for counts. Extremely fast on high-dimensional sparse data (e.g. text). Calibration can be poor — pair with Platt scaling or isotonic regression if you need trustworthy probabilities.</div>
+      <div class="cb">Generative shortcut: assumes features are <strong>conditionally independent</strong> given the class. Gaussian NB for continuous scores, Multinomial/Bernoulli for counts. Extremely fast on high-dimensional sparse data (e.g. text). Calibration can be poor — pair with Platt scaling or isotonic regression if you need trustworthy probabilities.<br><br><strong>Example:</strong> Gaussian NB with one variance per class per feature: P(sharp | Laplacian=60) ∝ P(sharp)·P(Lap=60|sharp) — if sharp images rarely show Laplacian below 30, very low scores push toward blurry even before seeing other features.</div>
     </div>
   </div>
 
