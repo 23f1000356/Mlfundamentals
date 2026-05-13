@@ -20,10 +20,16 @@ Clone this repository, then double-click `Ml.html` or open it from your browser 
 
 ## Deploy on Vercel
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/23f1000356/Mlfundamentals)
+
+Or import manually:
+
 1. Sign in at [vercel.com](https://vercel.com) and choose **Add New… → Project**.
 2. **Import** [github.com/23f1000356/Mlfundamentals](https://github.com/23f1000356/Mlfundamentals).
 3. Use defaults: **Framework Preset** “Other”, no build command, output **`.`** (root). `vercel.json` maps `/` to `Ml.html`.
 4. Click **Deploy**. Future pushes to `main` redeploy automatically.
+
+**CLI (optional):** With [Node.js](https://nodejs.org/) installed, from this folder run `npx vercel login` once, then `npx vercel deploy --prod` for a production URL without using the dashboard import flow.
 
 ## Repository
 
