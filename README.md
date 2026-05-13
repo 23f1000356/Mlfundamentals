@@ -1,4 +1,4 @@
-# Mlfundaementals
+# ML Fundamentals
 
 A single-page **ML Fundamentals — Complete Guide** reference. Open `Ml.html` in a browser (no build step required).
 
@@ -20,4 +20,4 @@ Clone this repository, then double-click `Ml.html` or open it from your browser 
 
 ## Repository
 
-Hosted at [github.com/23f1000356/Mlfundaementals](https://github.com/23f1000356/Mlfundaementals).
+Repository: [github.com/23f1000356/Mlfundamentals](https://github.com/23f1000356/Mlfundamentals).
