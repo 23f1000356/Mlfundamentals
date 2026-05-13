@@ -499,7 +499,7 @@ RMSE = √((1/n) Σ (yᵢ−ŷᵢ)²)</div>
   </table></div>
 
   <h2 id="r-algos">Regression algorithms in detail</h2>
-  <p>Every regression method chooses a <strong>function family</strong> for f(x), a <strong>loss</strong> L(y, ŷ), and usually a <strong>regulariser</strong> to control complexity. The right choice depends on linearity, outliers, dimensionality, and whether you need calibrated probabilities or interpretable splits.</p>
+  <p>Every regression method chooses a <strong>function family</strong> for f(x), a <strong>loss</strong> L(y, ŷ), and usually a <strong>regulariser</strong> to control complexity. The right choice depends on linearity, outliers, dimensionality, and whether you need calibrated probabilities or interpretable splits. <strong>Neural regression</strong> uses the same MSE or Huber head as classical models, but h(x) is a deep network — so non-linearity is learned from raw inputs (pixels, waveforms) rather than hand-built features.</p>
 
   <h3 id="r-reglin">Regularised linear &amp; generalised linear regression</h3>
   <p><strong>Ridge (L2)</strong> shrinks all coefficients smoothly toward zero but rarely sets them exactly to zero — good when many weakly relevant features exist. <strong>Lasso (L1)</strong> encourages sparsity and performs implicit feature selection. <strong>Elastic Net</strong> blends both so correlated groups of features (e.g. many Laplacian variants) can survive together while still shrinking noise.</p>
@@ -523,6 +523,28 @@ g(E[y|x]) = wᵀx + b   with   g = logit for binary counts</div>
       <div class="cb"><strong>Huber loss</strong> reduces the influence of outliers compared to pure squared error — useful when sharpness labels are noisy.<br><br><strong>Quantile regression</strong> predicts a chosen percentile of y (e.g. 10th and 90th percentile blur score) instead of the mean — helpful for risk-aware thresholds.</div>
     </div>
   </div>
+  <p><strong>Geometry of penalties (intuition):</strong> With a fixed loss budget, Ridge pulls weights toward the origin along a spherical (L2) surface — many small weights. Lasso prefers solutions on the coordinate axes — some weights become <strong>exactly zero</strong>, dropping features from the model entirely.</p>
+  <div class="vis">
+    <div class="vlb">L2 (Ridge) vs L1 (Lasso) — constraint regions in 2D weight space (w₁, w₂)</div>
+    <svg viewBox="0 0 760 200" style="height:200px">
+      <text font-family="'DM Sans',sans-serif" font-size="11" font-weight="600" fill="#534AB7" x="190" y="22" text-anchor="middle">Ridge: circular ‖w‖₂ ≤ t</text>
+      <text font-family="'DM Sans',sans-serif" font-size="11" font-weight="600" fill="#0F6E56" x="570" y="22" text-anchor="middle">Lasso: diamond ‖w‖₁ ≤ t</text>
+      <line x1="40" y1="170" x2="340" y2="170" stroke="#D0CFCA" stroke-width="1.5"/>
+      <line x1="40" y1="170" x2="40" y2="40" stroke="#D0CFCA" stroke-width="1.5"/>
+      <text font-family="'DM Sans',sans-serif" font-size="10" fill="#888780" x="190" y="188" text-anchor="middle">w₁</text>
+      <text font-family="'DM Sans',sans-serif" font-size="10" fill="#888780" x="22" y="105" text-anchor="middle" transform="rotate(-90 22 105)">w₂</text>
+      <ellipse cx="190" cy="105" rx="88" ry="88" fill="none" stroke="#7F77DD" stroke-width="2" stroke-dasharray="6 4"/>
+      <circle cx="190" cy="105" r="3" fill="#534AB7"/>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#534AB7" x="235" y="95">Ols / ridge</text>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#888780" x="90" y="55">Many non-zero weights</text>
+      <line x1="420" y1="170" x2="720" y2="170" stroke="#D0CFCA" stroke-width="1.5"/>
+      <line x1="420" y1="170" x2="420" y2="40" stroke="#D0CFCA" stroke-width="1.5"/>
+      <polygon points="570,55 655,105 570,155 485,105" fill="none" stroke="#1D9E75" stroke-width="2" stroke-dasharray="6 4"/>
+      <circle cx="570" cy="105" r="3" fill="#0F6E56"/>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#0F6E56" x="600" y="100">Sparse corner</text>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#888780" x="470" y="55">Touches axis → wᵢ = 0</text>
+    </svg>
+  </div>
 
   <h3 id="r-svr">Support vector regression (SVR)</h3>
   <p>SVR finds a function that stays within an <strong>ε-tube</strong> around as many training points as possible while keeping the slope “flat” in feature space (small ‖w‖). Points outside the tube become support vectors and pay a linear hinge penalty.</p>
@@ -532,12 +554,65 @@ subject to |yᵢ − (wᵀφ(xᵢ)+b)| ≤ ε + ξᵢ
 <span class="cm">// ε = tube half-width — larger ε → fewer support vectors, smoother fit</span>
 <span class="cm">// C = trade-off between flatness and tolerance of errors outside tube</span>
 <span class="cm">// φ(x) = implicit feature map; kernel K(x,x′)=φ(x)ᵀφ(x′) for non-linear SVR</span></div>
+  <div class="vis">
+    <div class="vlb">SVR — ε-insensitive tube around the regressor f(x); points outside pay slack</div>
+    <svg viewBox="0 0 760 220" style="height:220px">
+      <line x1="60" y1="190" x2="700" y2="190" stroke="#D0CFCA" stroke-width="1.5"/>
+      <line x1="60" y1="190" x2="60" y2="35" stroke="#D0CFCA" stroke-width="1.5"/>
+      <text font-family="'DM Sans',sans-serif" font-size="11" fill="#888780" x="380" y="210" text-anchor="middle">feature x (e.g. Laplacian score)</text>
+      <text font-family="'DM Sans',sans-serif" font-size="11" fill="#888780" x="28" y="115" text-anchor="middle" transform="rotate(-90 28 115)">target y</text>
+      <path d="M 80 165 Q 200 120 340 95 T 620 70" fill="none" stroke="#534AB7" stroke-width="2.5"/>
+      <text font-family="'DM Sans',sans-serif" font-size="10" fill="#534AB7" x="640" y="62">f(x)</text>
+      <path d="M 80 148 Q 200 103 340 78 T 620 53" fill="none" stroke="#7F77DD" stroke-width="1.5" stroke-dasharray="5 4"/>
+      <path d="M 80 182 Q 200 137 340 112 T 620 87" fill="none" stroke="#7F77DD" stroke-width="1.5" stroke-dasharray="5 4"/>
+      <polygon points="80,148 80,182 620,87 620,53" fill="#EEEDFE" opacity="0.35"/>
+      <text font-family="'JetBrains Mono',monospace" font-size="9" fill="#534AB7" x="500" y="42">y = f(x) ± ε</text>
+      <circle cx="130" cy="158" r="5" fill="#1D9E75" stroke="#fff" stroke-width="1"/>
+      <circle cx="220" cy="128" r="5" fill="#1D9E75" stroke="#fff" stroke-width="1"/>
+      <circle cx="310" cy="102" r="5" fill="#1D9E75" stroke="#fff" stroke-width="1"/>
+      <circle cx="400" cy="88" r="5" fill="#1D9E75" stroke="#fff" stroke-width="1"/>
+      <circle cx="520" cy="78" r="5" fill="#1D9E75" stroke="#fff" stroke-width="1"/>
+      <circle cx="280" cy="145" r="6" fill="#E24B4A" stroke="#fff" stroke-width="1.5"/>
+      <circle cx="450" cy="118" r="6" fill="#E24B4A" stroke="#fff" stroke-width="1.5"/>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#0F6E56" x="690" y="130">in tube</text>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#A32D2D" x="690" y="155">support / slack</text>
+    </svg>
+  </div>
   <div class="callout" style="background:var(--purple-l);border-color:var(--purple-m)">
     <strong style="color:var(--purple)">Practical note:</strong> SVR shines on <strong>medium-sized</strong> tabular problems with non-linear structure. On very large datasets, kernel methods become expensive (training is super-linear in n); tree ensembles or neural nets are often easier to scale.
   </div>
 
   <h3 id="r-trees">Regression trees, random forests &amp; gradient boosting</h3>
   <p><strong>CART regression trees</strong> split each node to minimise weighted MSE in the children. Leaves predict the <strong>mean</strong> of training y in that region — piecewise-constant surfaces with axis-aligned boundaries.</p>
+  <div class="vis">
+    <div class="vlb">Regression tree — recursive axis-aligned splits partition feature space; each leaf predicts ȳ (mean y)</div>
+    <svg viewBox="0 0 760 200" style="height:200px">
+      <rect x="50" y="40" width="300" height="140" fill="#FDFCF9" stroke="#D0CFCA" stroke-width="1.5"/>
+      <line x1="200" y1="40" x2="200" y2="180" stroke="#534AB7" stroke-width="2"/>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#534AB7" x="205" y="58">x₁ &lt; θ₁ ?</text>
+      <line x1="50" y1="110" x2="200" y2="110" stroke="#534AB7" stroke-width="2"/>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#534AB7" x="55" y="98">x₂ &lt; θ₂ ?</text>
+      <rect x="55" y="118" width="65" height="55" fill="#EEEDFE" stroke="#AFA9EC"/>
+      <text font-family="'JetBrains Mono',monospace" font-size="11" fill="#26215C" x="87" y="150" text-anchor="middle">ȳ=2.1</text>
+      <rect x="130" y="118" width="65" height="55" fill="#E6F1FB" stroke="#85B7EB"/>
+      <text font-family="'JetBrains Mono',monospace" font-size="11" fill="#042C53" x="162" y="150" text-anchor="middle">ȳ=7.4</text>
+      <rect x="205" y="48" width="140" height="125" fill="#E1F5EE" stroke="#5DCAA5"/>
+      <text font-family="'JetBrains Mono',monospace" font-size="11" fill="#085041" x="275" y="115" text-anchor="middle">ȳ=5.0</text>
+      <text font-family="'DM Sans',sans-serif" font-size="10" fill="#888780" x="200" y="28" text-anchor="middle">2D feature view (conceptual)</text>
+      <rect x="400" y="45" width="310" height="130" fill="#FAFAF7" stroke="#D0CFCA"/>
+      <rect x="420" y="65" width="70" height="40" rx="6" fill="#534AB7"/>
+      <text font-family="'DM Sans',sans-serif" font-size="10" fill="#fff" x="455" y="88" text-anchor="middle">root</text>
+      <line x1="455" y1="105" x2="410" y2="135" stroke="#888780" stroke-width="1.5"/>
+      <line x1="455" y1="105" x2="500" y2="135" stroke="#888780" stroke-width="1.5"/>
+      <rect x="375" y="138" width="70" height="32" rx="5" fill="#EEEDFE" stroke="#AFA9EC"/>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#26215C" x="410" y="157" text-anchor="middle">leaf</text>
+      <rect x="465" y="138" width="70" height="32" rx="5" fill="#E1F5EE" stroke="#5DCAA5"/>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#085041" x="500" y="157" text-anchor="middle">leaf</text>
+      <text font-family="'DM Sans',sans-serif" font-size="10" fill="#888780" x="555" y="95" text-anchor="middle">Same splits as</text>
+      <text font-family="'DM Sans',sans-serif" font-size="10" fill="#888780" x="555" y="112" text-anchor="middle">tree diagram</text>
+    </svg>
+  </div>
+  <p>Each internal node stores a <strong>split rule</strong> (feature index + threshold). Leaves store a constant prediction. Deeper trees fit training data more tightly; <strong>shallower</strong> trees generalise better but underfit if depth is too small.</p>
   <div class="formula" style="border-color:var(--purple);font-size:.76rem">Split impurity (MSE) for candidate split S into L and R:
 
 Δ = Σᵢ∈L (yᵢ − μL)² + Σᵢ∈R (yᵢ − μR)²   <span class="cm">// choose split minimising total child MSE</span>
@@ -551,6 +626,51 @@ Gradient boosting (regression):  Fₘ(x) = Fₘ₋₁(x) + η · hₘ(x)
     <div class="tc tc-purple"><div class="tct">Single tree</div><div class="tcb">Very interpretable; high variance. Control depth, min samples per leaf, or pruning to avoid memorising noise.</div></div>
     <div class="tc tc-purple"><div class="tct">Random Forest</div><div class="tcb">Bagging + decorrelated trees. Lower variance; strong default for heterogeneous tabular features (Laplacian, FFT, metadata).</div></div>
     <div class="tc tc-purple"><div class="tct">Boosting (GBDT)</div><div class="tcb">Sequential bias reduction. Often best accuracy on structured data; tune learning rate, depth, and early stopping to avoid overfit.</div></div>
+  </div>
+  <p><strong>Random Forest training recipe:</strong> draw B bootstrap samples of n rows; for each, grow a tree where each split considers only a random subset of mtry features (often √p for classification, p/3 for regression). <strong>OOB error</strong> evaluates each tree on the ~37% of rows left out of its bootstrap — a free validation curve as B increases.</p>
+  <div class="vis">
+    <div class="vlb">Random Forest (parallel) vs gradient boosting (sequential) — conceptual training flow</div>
+    <svg viewBox="0 0 760 210" style="height:210px">
+      <text font-family="'DM Sans',sans-serif" font-size="11" font-weight="600" fill="#534AB7" x="190" y="22" text-anchor="middle">Random Forest — bagging</text>
+      <rect x="40" y="40" width="100" height="50" rx="8" fill="#EEEDFE" stroke="#AFA9EC" stroke-width="1.5"/>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#26215C" x="90" y="70" text-anchor="middle">Boot 1</text>
+      <rect x="150" y="40" width="100" height="50" rx="8" fill="#EEEDFE" stroke="#AFA9EC" stroke-width="1.5"/>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#26215C" x="200" y="70" text-anchor="middle">Boot 2</text>
+      <text font-family="'DM Sans',sans-serif" font-size="14" fill="#888780" x="268" y="72">…</text>
+      <rect x="300" y="40" width="100" height="50" rx="8" fill="#EEEDFE" stroke="#AFA9EC" stroke-width="1.5"/>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#26215C" x="350" y="70" text-anchor="middle">Boot B</text>
+      <line x1="90" y1="90" x2="90" y2="115" stroke="#888780" stroke-width="1.2"/>
+      <line x1="200" y1="90" x2="200" y2="115" stroke="#888780" stroke-width="1.2"/>
+      <line x1="350" y1="90" x2="350" y2="115" stroke="#888780" stroke-width="1.2"/>
+      <rect x="55" y="120" width="70" height="36" rx="6" fill="#534AB7"/>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#fff" x="90" y="141" text-anchor="middle">Tree₁</text>
+      <rect x="165" y="120" width="70" height="36" rx="6" fill="#534AB7"/>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#fff" x="200" y="141" text-anchor="middle">Tree₂</text>
+      <rect x="315" y="120" width="70" height="36" rx="6" fill="#534AB7"/>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#fff" x="350" y="141" text-anchor="middle">TreeB</text>
+      <line x1="90" y1="156" x2="220" y2="178" stroke="#888780" stroke-width="1.2"/>
+      <line x1="200" y1="156" x2="220" y2="178" stroke="#888780" stroke-width="1.2"/>
+      <line x1="350" y1="156" x2="220" y2="178" stroke="#888780" stroke-width="1.2"/>
+      <rect x="175" y="182" width="90" height="22" rx="5" fill="#E1F5EE" stroke="#1D9E75"/>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#085041" x="220" y="197" text-anchor="middle">mean / vote ŷ</text>
+      <text font-family="'DM Sans',sans-serif" font-size="11" font-weight="600" fill="#0F6E56" x="595" y="22" text-anchor="middle">Gradient boosting</text>
+      <rect x="440" y="45" width="55" height="28" rx="5" fill="#F1EFE8" stroke="#D0CFCA"/>
+      <text font-family="'JetBrains Mono',monospace" font-size="9" fill="#444441" x="467" y="62" text-anchor="middle">F₀</text>
+      <text font-family="'DM Sans',sans-serif" font-size="14" fill="#888780" x="505" y="62">+</text>
+      <rect x="520" y="45" width="55" height="28" rx="5" fill="#E1F5EE" stroke="#5DCAA5"/>
+      <text font-family="'JetBrains Mono',monospace" font-size="9" fill="#085041" x="547" y="62" text-anchor="middle">ηh₁</text>
+      <text font-family="'DM Sans',sans-serif" font-size="14" fill="#888780" x="585" y="62">→</text>
+      <rect x="600" y="45" width="55" height="28" rx="5" fill="#F1EFE8" stroke="#D0CFCA"/>
+      <text font-family="'JetBrains Mono',monospace" font-size="9" fill="#444441" x="627" y="62" text-anchor="middle">F₁</text>
+      <text font-family="'DM Sans',sans-serif" font-size="14" fill="#888780" x="665" y="62">…</text>
+      <rect x="685" y="45" width="55" height="28" rx="5" fill="#EEEDFE" stroke="#AFA9EC"/>
+      <text font-family="'JetBrains Mono',monospace" font-size="9" fill="#26215C" x="712" y="62" text-anchor="middle">Fₘ</text>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#888780" x="595" y="95" text-anchor="middle">each hₘ fits residuals (y − Fₘ₋₁) or gradient of loss</text>
+      <rect x="455" y="115" width="270" height="75" rx="8" fill="#FDFCF9" stroke="#D0CFCA"/>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#4A4A46" x="590" y="135" text-anchor="middle">Monitor validation loss → early stop at best round</text>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#4A4A46" x="590" y="155" text-anchor="middle">Subsample rows &amp; features per tree to reduce overfit (stochastic boosting)</text>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#4A4A46" x="590" y="175" text-anchor="middle">Smaller η + more trees ≈ smoother generalisation</text>
+    </svg>
   </div>
 
   <div class="tbl-scroll"><table>
@@ -587,6 +707,36 @@ Gradient boosting (regression):  Fₘ(x) = Fₘ₋₁(x) + η · hₘ(x)
     <div class="tc tc-teal"><div class="tct">Multi-class</div><div class="tcb">3+ classes. Ring, Bangle, Necklace. One winner. Softmax output layer — all probs sum to 1.</div></div>
     <div class="tc tc-teal"><div class="tct">Multi-label</div><div class="tcb">Multiple tags simultaneously. Blurry AND dark AND damaged. Several winners possible.</div></div>
   </div>
+  <p>In 2D feature space, a <strong>linear classifier</strong> (logistic regression, linear SVM) draws a single line (or plane in higher D). A <strong>tree</strong> draws nested rectangles. A <strong>k-NN</strong> boundary is locally stitched from Voronoi-like regions. Neural nets can approximate highly curved boundaries but need enough data to avoid spurious folds.</p>
+  <div class="vis">
+    <div class="vlb">Binary decision regions — linear boundary vs axis-aligned tree partition (schematic)</div>
+    <svg viewBox="0 0 760 200" style="height:200px">
+      <text font-family="'DM Sans',sans-serif" font-size="11" font-weight="600" fill="#185FA5" x="190" y="22" text-anchor="middle">Linear boundary</text>
+      <rect x="40" y="38" width="300" height="150" fill="#FAFAF7" stroke="#D0CFCA"/>
+      <line x1="55" y1="175" x2="320" y2="45" stroke="#185FA5" stroke-width="2.5"/>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#185FA5" x="300" y="40">w·x + b = 0</text>
+      <circle cx="100" cy="130" r="6" fill="#378ADD" opacity="0.85"/>
+      <circle cx="130" cy="150" r="6" fill="#378ADD" opacity="0.85"/>
+      <circle cx="90" cy="155" r="6" fill="#378ADD" opacity="0.85"/>
+      <circle cx="250" cy="70" r="6" fill="#1D9E75" opacity="0.85"/>
+      <circle cx="280" cy="95" r="6" fill="#1D9E75" opacity="0.85"/>
+      <circle cx="300" cy="65" r="6" fill="#1D9E75" opacity="0.85"/>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#378ADD" x="75" y="100" text-anchor="middle">blurry</text>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#1D9E75" x="270" y="130" text-anchor="middle">sharp</text>
+      <text font-family="'DM Sans',sans-serif" font-size="11" font-weight="600" fill="#0F6E56" x="570" y="22" text-anchor="middle">Tree partition</text>
+      <rect x="400" y="38" width="320" height="150" fill="#FAFAF7" stroke="#D0CFCA"/>
+      <line x1="400" y1="110" x2="720" y2="110" stroke="#534AB7" stroke-width="2"/>
+      <line x1="540" y1="38" x2="540" y2="188" stroke="#534AB7" stroke-width="2"/>
+      <circle cx="470" cy="150" r="5" fill="#378ADD" opacity="0.85"/>
+      <circle cx="500" cy="145" r="5" fill="#378ADD" opacity="0.85"/>
+      <circle cx="620" cy="70" r="5" fill="#1D9E75" opacity="0.85"/>
+      <circle cx="660" cy="85" r="5" fill="#1D9E75" opacity="0.85"/>
+      <circle cx="480" cy="75" r="5" fill="#1D9E75" opacity="0.85"/>
+      <text font-family="'DM Sans',sans-serif" font-size="8" fill="#378ADD" x="455" y="165">blurry</text>
+      <text font-family="'DM Sans',sans-serif" font-size="8" fill="#1D9E75" x="640" y="140">sharp</text>
+    </svg>
+  </div>
+  <p><strong>Threshold choice:</strong> Moving the decision threshold (e.g. from 0.5 on p(sharp)) trades precision for recall — essential when false negatives cost more than false positives.</p>
 
   <h2 id="c-algo">Key classification algorithms</h2>
   <p>These four are the <strong>classical baselines</strong>: cheap to train, easy to explain, and strong sanity checks before you invest in deep models or heavy ensembles.</p>
@@ -636,6 +786,36 @@ subject to  yᵢ(wᵀxᵢ + b) ≥ 1 − ξᵢ ,   ξᵢ ≥ 0
 
 Dual (kernelised):  maximise Σ αᵢ − ½ Σᵢⱼ αᵢ αⱼ yᵢ yⱼ K(xᵢ,xⱼ)
 <span class="cm">// Common K: linear, RBF exp(−γ‖x−x′‖²), polynomial (xᵀx′+c)^d</span></div>
+  <div class="vis">
+    <div class="vlb">Linear SVM — maximum margin hyperplane; support vectors lie on the margin edges</div>
+    <svg viewBox="0 0 760 220" style="height:220px">
+      <rect x="40" y="35" width="330" height="165" fill="#FAFAF7" stroke="#D0CFCA"/>
+      <line x1="60" y1="195" x2="340" y2="45" stroke="#888780" stroke-width="1.2" stroke-dasharray="5 4"/>
+      <line x1="70" y1="195" x2="350" y2="45" stroke="#888780" stroke-width="1.2" stroke-dasharray="5 4"/>
+      <line x1="80" y1="195" x2="360" y2="45" stroke="#1D9E75" stroke-width="3"/>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#0F6E56" x="300" y="100" transform="rotate(-32 300 100)">w·x + b = 0</text>
+      <circle cx="120" cy="155" r="7" fill="#378ADD" opacity="0.9"/>
+      <circle cx="95" cy="170" r="7" fill="#378ADD" opacity="0.9"/>
+      <circle cx="145" cy="140" r="7" fill="#378ADD" opacity="0.9"/>
+      <circle cx="290" cy="75" r="7" fill="#D85A30" opacity="0.9"/>
+      <circle cx="310" cy="95" r="7" fill="#D85A30" opacity="0.9"/>
+      <circle cx="270" cy="90" r="7" fill="#D85A30" opacity="0.9"/>
+      <circle cx="175" cy="118" r="9" fill="none" stroke="#993C1D" stroke-width="2.5"/>
+      <text font-family="'DM Sans',sans-serif" font-size="8" fill="#993C1D" x="195" y="108">SV</text>
+      <circle cx="265" cy="88" r="9" fill="none" stroke="#993C1D" stroke-width="2.5"/>
+      <text font-family="'DM Sans',sans-serif" font-size="8" fill="#993C1D" x="245" y="78">SV</text>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#378ADD" x="55" y="30">class +1</text>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#D85A30" x="300" y="40">class −1</text>
+      <rect x="400" y="35" width="320" height="165" fill="#FDFCF9" stroke="#D0CFCA"/>
+      <text font-family="'DM Sans',sans-serif" font-size="10" font-weight="600" fill="#534AB7" x="560" y="55" text-anchor="middle">Kernel lift (idea)</text>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#4A4A46" x="560" y="85" text-anchor="middle">Original x may not be separable</text>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#4A4A46" x="560" y="105" text-anchor="middle">φ(x) in higher dimension can be</text>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#4A4A46" x="560" y="125" text-anchor="middle">linearly separated without ever</text>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#4A4A46" x="560" y="145" text-anchor="middle">forming φ explicitly — only K(x,x′)</text>
+      <path d="M 460 170 Q 560 100 660 170" fill="none" stroke="#534AB7" stroke-width="2"/>
+      <text font-family="'JetBrains Mono',monospace" font-size="8" fill="#534AB7" x="560" y="178" text-anchor="middle">RBF boundary in x-space</text>
+    </svg>
+  </div>
   <div class="callout" style="background:var(--teal-l);border-color:var(--teal-m)">
     <strong style="color:var(--teal)">When SVM still wins:</strong> Small-to-medium tabular datasets, especially when classes are separable with a smooth boundary in a lifted space. For images, raw-pixel SVMs are obsolete — but <strong>SVM on engineered features</strong> (Laplacian, FFT, colour stats) can still be a strong cheap baseline next to logistic regression.
   </div>
@@ -657,6 +837,7 @@ Fₘ(x) = Fₘ₋₁(x) + η · hₘ(x)   with   hₘ fitted to −∂L/∂Fₘ�
       <div class="cb">Often highest accuracy on structured/tabular data; built-in handling of missing values in some libraries; monotone constraints available for business rules. Watch for overfitting without early stopping and strong regularisation.</div>
     </div>
   </div>
+  <p><strong>Gradient boosting intuition:</strong> the first weak learner F₀ might be the log-odds of the positive class rate. Each tree hₘ corrects the <strong>errors of the sum so far</strong>; with squared error regression those targets are literal residuals, with log-loss they are probability gaps. <strong>Shrinkage</strong> η &lt; 1 forces many small corrections instead of a few large jumps — almost always improves generalisation.</p>
 
   <h3 id="c-dlcls">Neural classifiers &amp; softmax</h3>
   <p>Deep networks stack learned feature extractors with a <strong>linear classifier head</strong>. Binary problems use a single <strong>sigmoid</strong> output; multi-class uses <strong>softmax</strong> over K logits so probabilities sum to 1. Training minimises cross-entropy, which is the natural companion to softmax (maximum likelihood under a multinomial model).</p>
@@ -665,7 +846,31 @@ Fₘ(x) = Fₘ₋₁(x) + η · hₘ(x)   with   hₘ fitted to −∂L/∂Fₘ�
 Cross-entropy:  L = − Σₖ yₖ log ŷₖ   <span class="cm">// one-hot y for multi-class</span>
 
 <span class="cm">// Binary blur: single logit + sigmoid = 2-class softmax with shared parametrisation</span></div>
-  <p>CNNs (e.g. EfficientNetB0) learn h(x) from pixels; transfer learning freezes early layers and fine-tunes the head when data is limited. <strong>Label smoothing</strong> and <strong>focal loss</strong> are common tweaks under imbalance — focal loss down-weights easy negatives so the model focuses on hard examples.</p>
+  <div class="vis">
+    <div class="vlb">Softmax turns logits z into a probability vector — larger zₖ → larger mass (exponential amplifies gaps)</div>
+    <svg viewBox="0 0 760 200" style="height:200px">
+      <text font-family="'DM Sans',sans-serif" font-size="10" font-weight="600" fill="#4A4A46" x="120" y="28" text-anchor="middle">Logits z (before softmax)</text>
+      <rect x="40" y="40" width="160" height="22" rx="4" fill="#F1EFE8" stroke="#D0CFCA"/>
+      <text font-family="'JetBrains Mono',monospace" font-size="10" fill="#26215C" x="120" y="55" text-anchor="middle">[2.0,  0.5,  −1.0,  0.2]</text>
+      <text font-family="'DM Sans',sans-serif" font-size="20" fill="#888780" x="220" y="58">→</text>
+      <text font-family="'DM Sans',sans-serif" font-size="10" font-weight="600" fill="#0F6E56" x="500" y="28" text-anchor="middle">Probabilities ŷ (sum = 1)</text>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#888780" x="500" y="42" text-anchor="middle">Ring · Bangle · Necklace · Other</text>
+      <rect x="280" y="58" width="420" height="22" fill="#E6F1FB"/>
+      <rect x="280" y="58" width="248" height="22" fill="#185FA5" opacity="0.85"/>
+      <text font-family="'JetBrains Mono',monospace" font-size="9" fill="#fff" x="404" y="73" text-anchor="middle">0.59</text>
+      <rect x="280" y="90" width="420" height="22" fill="#E6F1FB"/>
+      <rect x="280" y="90" width="105" height="22" fill="#378ADD" opacity="0.85"/>
+      <text font-family="'JetBrains Mono',monospace" font-size="9" fill="#fff" x="332" y="105" text-anchor="middle">0.25</text>
+      <rect x="280" y="122" width="420" height="22" fill="#E6F1FB"/>
+      <rect x="280" y="122" width="38" height="22" fill="#888780" opacity="0.55"/>
+      <text font-family="'JetBrains Mono',monospace" font-size="9" fill="#fff" x="299" y="137" text-anchor="middle">0.09</text>
+      <rect x="280" y="154" width="420" height="22" fill="#E6F1FB"/>
+      <rect x="280" y="154" width="52" height="22" fill="#1D9E75" opacity="0.75"/>
+      <text font-family="'JetBrains Mono',monospace" font-size="9" fill="#fff" x="306" y="169" text-anchor="middle">0.12</text>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#888780" x="710" y="72" text-anchor="end">winner</text>
+    </svg>
+  </div>
+  <p>CNNs (e.g. EfficientNetB0) learn h(x) from pixels; transfer learning freezes early layers and fine-tunes the head when data is limited. <strong>Label smoothing</strong> replaces hard one-hot targets with a mixture with the uniform distribution, reducing overconfidence. <strong>Focal loss</strong> multiplies cross-entropy by <code>(1 − pₜ)^γ</code> so well-classified examples contribute less gradient — valuable when negatives vastly outnumber positives.</p>
 
   <div class="tbl-scroll tbl-wide"><table>
     <thead><tr><th>Family</th><th>Typical loss</th><th>Boundary shape</th><th>Data scale</th><th>Notes</th></tr></thead>
@@ -701,6 +906,27 @@ F1 Score  = 2·(Precision·Recall)/(Precision+Recall)
 
 AUC-ROC   = area under TPR vs FPR curve
 <span class="cm">           1.0 = perfect,  0.5 = random guessing</span></div>
+  <p><strong>ROC vs PR:</strong> ROC-AUC integrates true-positive rate vs false-positive rate as you sweep the threshold. With <strong>heavy class imbalance</strong>, ROC can look optimistic because FPR is dominated by the huge negative class. <strong>Precision–Recall AUC</strong> focuses on the minority class and often aligns better with business cost when positives are rare.</p>
+  <div class="vis">
+    <div class="vlb">ROC curve — every threshold is one point; AUC = area above the diagonal</div>
+    <svg viewBox="0 0 760 220" style="height:220px">
+      <line x1="80" y1="180" x2="680" y2="180" stroke="#D0CFCA" stroke-width="1.5"/>
+      <line x1="80" y1="180" x2="80" y2="40" stroke="#D0CFCA" stroke-width="1.5"/>
+      <text font-family="'DM Sans',sans-serif" font-size="11" fill="#888780" x="380" y="200" text-anchor="middle">False positive rate (FPR)</text>
+      <text font-family="'DM Sans',sans-serif" font-size="11" fill="#888780" x="42" y="115" text-anchor="middle" transform="rotate(-90 42 115)">True positive rate (TPR)</text>
+      <line x1="80" y1="180" x2="680" y2="40" stroke="#E0DFD8" stroke-width="1.5" stroke-dasharray="6 5"/>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#888780" x="650" y="55">random (AUC=0.5)</text>
+      <path d="M 80 180 L 120 175 L 180 155 L 260 120 L 360 70 L 500 48 L 680 40" fill="none" stroke="#1D9E75" stroke-width="2.5"/>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#0F6E56" x="420" y="95">better model</text>
+      <text font-family="'JetBrains Mono',monospace" font-size="9" fill="#4A4A46" x="90" y="52">(0,0) all predicted blurry</text>
+      <text font-family="'JetBrains Mono',monospace" font-size="9" fill="#4A4A46" x="520" y="52">(1,1) all predicted sharp</text>
+      <rect x="480" y="125" width="240" height="70" rx="8" fill="#E1F5EE" stroke="#5DCAA5"/>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#085041" x="600" y="148" text-anchor="middle">Sweep threshold τ on p(sharp)</text>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#085041" x="600" y="168" text-anchor="middle">Lower τ → higher TPR &amp; FPR</text>
+      <text font-family="'DM Sans',sans-serif" font-size="9" fill="#085041" x="600" y="186" text-anchor="middle">Pick τ on validation for target recall</text>
+    </svg>
+  </div>
+  <p><strong>Calibration:</strong> A model can have high AUC yet give poorly calibrated probabilities (predicted 0.9 vs actual 60% positive rate among those bins). Tools: <strong>reliability diagrams</strong>, <strong>Platt scaling</strong>, <strong>isotonic regression</strong> on a held-out set.</p>
 
   <div class="callout" style="background:#FFF3CD;border-color:#EF9F27">
     <strong style="color:#854F0B">For your blur project:</strong> Recall matters more than Precision. A False Negative (discarding a sharp image forever) is worse than a False Positive (a blurry image sits in the sharp folder). Consider lowering the threshold from 0.5 to 0.4 to maximise recall.
