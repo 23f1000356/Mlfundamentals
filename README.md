@@ -18,6 +18,13 @@ The guide is organized into these sections:
 
 Clone this repository, then double-click `Ml.html` or open it from your browser via **File → Open**. An internet connection helps load the web fonts from Google Fonts.
 
+## Deploy on Vercel
+
+1. Sign in at [vercel.com](https://vercel.com) and choose **Add New… → Project**.
+2. **Import** [github.com/23f1000356/Mlfundamentals](https://github.com/23f1000356/Mlfundamentals).
+3. Use defaults: **Framework Preset** “Other”, no build command, output **`.`** (root). `vercel.json` maps `/` to `Ml.html`.
+4. Click **Deploy**. Future pushes to `main` redeploy automatically.
+
 ## Repository
 
 Repository: [github.com/23f1000356/Mlfundamentals](https://github.com/23f1000356/Mlfundamentals).
